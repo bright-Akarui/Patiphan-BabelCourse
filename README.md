@@ -16,8 +16,8 @@
 > **หมายเหตุ**: คุณสามารถดูรายละเอียดความคืบหน้าของแต่ละคอร์สได้ในโฟลเดอร์ที่เกี่ยวข้อง:
 > - [React Fundamentals](./reactFundCourse/workshop_product/frontend/README.md)
 > - [Go RESTful API](./golang_api/README.md)
-> - [DevOps](./devops_course/README.md)
 > - [Next.js](./nextjs_course/README.md)
+> - [DevOps](./devops_course/README.md)
 
 ### ส่วนที่เรียนจบแล้ว:
 ########### GO ###########
@@ -83,11 +83,11 @@
 
 ## คอร์สอื่นๆ ในแผนการเรียนรู้ของผม
 
-1. **คอร์สอบรม DevOps หลักสูตรระยะสั้น**
-    - เรียนรู้ Docker, Kubernetes, Terraform, Datadog, Kong, GitOps, Microservices และ CI/CD
-
-2. **คอร์สการใช้ Next.js เพื่อพัฒนาเว็บและ API**
+1. **คอร์สการใช้ Next.js เพื่อพัฒนาเว็บและ API**
     - TypeScript, React, Next.js, Routes, Zustand, Tailwind CSS, React Query, Shadcn
+
+2. **คอร์สอบรม DevOps หลักสูตรระยะสั้น**
+    - เรียนรู้ Docker, Kubernetes, Terraform, Datadog, Kong, GitOps, Microservices และ CI/CD
 
 3. **คอร์สอบรม MEAN Stack**
     - MongoDB, Express.js, Angular 17, Node.js, Nx Monorepo
