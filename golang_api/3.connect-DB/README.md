@@ -1,5 +1,5 @@
 ```go
-############################################ Start.. สร้าง RESTful API ด้วย Gin Framewprk ############################################
+############################################ Start.. สร้าง RESTful API ด้วย Gin Framework ############################################
 Gin Framwork
 	- ทดสอบการใช้งาน
 	package main
@@ -164,3 +164,58 @@ MVC (Model-view-controller)
 			- ประสานงานระหว่าง Model และ View	
 		- ตัวอย่างในเว็บ
 			- รับ request, เรียก Model, ส่งไป View
+############################################ END.. สร้าง RESTful API ด้วย Gin Framework ############################################
+
+############################################ START.. การเชื่อมต่อฐานข้อมูลและใช้งาน GORM ############################################
+การเชื่อมต่อฐานข้อมูลผ่าน GORM
+	- สร้าง folder config
+	- สร้างไฟล์ .go ไว้สำหรับเชื่อต่อฐานข้อมูล
+	- ดูการเชื่อฐานข้อมูลของแต่และฐานได้ที่ gorm doc
+	- ตัวอย่างโค้ด
+		package config
+
+		import (
+			"log"
+			"os"
+
+			"github.com/gin-gonic/gin"
+			"gorm.io/driver/postgres"
+			"gorm.io/gorm"
+			"gorm.io/gorm/logger"
+		)
+
+		var db *gorm.DB
+
+		func InitDB() {
+			var err error
+			var logLevel logger.LogLevel
+			if gin.Mode() == gin.DebugMode {
+				logLevel = logger.Info
+			} else {
+				logLevel = logger.Silent
+			}
+
+			db, err = gorm.Open(postgres.Open(os.Getenv("DATABASE_CONNECTION")), &gorm.Config{
+				Logger: logger.Default.LogMode(logLevel),
+			})
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		func GetDB() *gorm.DB {
+			return db
+		}
+
+		func CloseDB() {
+			sqlDB, err := db.DB()
+			if err != nil {
+				log.Println("failed to get sql.DB:", err)
+				return
+			}
+			sqlDB.Close()
+		}
+		และใน main.go เชื่อมดังนี้
+		config.InitDB()
+		defer config.CloseDB()
+############################################ END.. การเชื่อมต่อฐานข้อมูลและใช้งาน GORM ############################################

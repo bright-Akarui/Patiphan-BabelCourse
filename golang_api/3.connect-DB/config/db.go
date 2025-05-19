@@ -2,22 +2,31 @@ package config
 
 import (
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
 
 func InitDB() {
-	dsn := "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Bangkok"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	var err error
+	var logLevel logger.LogLevel
+	if gin.Mode() == gin.DebugMode {
+		logLevel = logger.Info
+	} else {
+		logLevel = logger.Silent
+	}
+
+	db, err = gorm.Open(postgres.Open(os.Getenv("DATABASE_CONNECTION")), &gorm.Config{
+		Logger: logger.Default.LogMode(logLevel),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	db.LogMode(gin.Mode() == gin.DebugMode)
 }
 
 func GetDB() *gorm.DB {
@@ -25,5 +34,10 @@ func GetDB() *gorm.DB {
 }
 
 func CloseDB() {
-	db.Close()
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Println("failed to get sql.DB:", err)
+		return
+	}
+	sqlDB.Close()
 }
