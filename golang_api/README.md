@@ -1,3 +1,4 @@
+```go
 ####################################### Start.. Basic Go #################################################
 package main
 import "fmt" //import libary เพื่อใช้วงาน fmt.Println(i)
