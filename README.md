@@ -1,0 +1,61 @@
+# การติดตามความคืบหน้าในการเรียน
+
+## ความคืบหน้าปัจจุบัน: คอร์ส React Fundamentals
+
+ขณะนี้ผมกำลังเรียนรู้พื้นฐาน React โดยเน้นที่ React, Redux และ Material UI ด้านล่างคือความคืบหน้าในการเรียนคอร์สที่ครอบคลุมนี้
+
+## ตารางการติดตามความคืบหน้า
+
+| คอร์ส | สถานะ | ความคืบหน้า | วันที่อัพเดทล่าสุด |
+|------|------|------------|----------------|
+| React Fundamentals ของ udemy | จบแล้ว | 100% | 14 พฤษภาคม 2025 |
+| RESTful API ด้วย Go | กำลังเรียน | 75% | 19 พฤษภาคม 2025 |
+| Next.js Development | รอเริ่ม | 0% | - |
+| DevOps หลักสูตรระยะสั้น | รอเริ่ม | 0% | - |
+
+> **หมายเหตุ**: คุณสามารถดูรายละเอียดความคืบหน้าของแต่ละคอร์สได้ในโฟลเดอร์ที่เกี่ยวข้อง:
+> - [React Fundamentals](./reactFundCourse/workshop_product/frontend/README.md)
+> - [DevOps](./devops_course/README.md)
+> - [Next.js](./nextjs_course/README.md)
+> - [Go RESTful API](./golang_api/README.md)
+
+### ส่วนที่เรียนจบแล้ว:
+
+#### Basic Go
+- ✅ แนะนำคอร์ส
+- ✅ การติดตั้ง Go และเครื่องมือที่เกี่ยวข้อง
+- ✅ ฟังก์ชัน main และ package main
+- ✅ ชนิดข้อมูลและการแปลง
+- ✅ การใช้ const และ iota
+- ✅ if-else statement
+- ✅ for loop
+- ✅ switch statement
+- ✅ ฟังก์ชันในภาษา Go
+- ✅ Pointers
+- ✅ การส่งค่าผ่านฟังก์ชันด้วย Pass by Value
+#### Basic Go
+- ✅ แนะนำคอร์ส
+- ✅ การติดตั้ง Go และเครื่องมือที่เกี่ยวข้อง
+- ✅ ฟังก์ชัน main และ package main
+- ✅ ชนิดข้อมูลและการแปลง
+- ✅ การใช้ const และ iota
+- ✅ if-else statement
+- ✅ for loop
+- ✅ switch statement
+- ✅ ฟังก์ชันในภาษา Go
+- ✅ Pointers
+- ✅ การส่งค่าผ่านฟังก์ชันด้วย Pass by Value
+
+## คอร์สอื่นๆ ในแผนการเรียนรู้ของผม
+
+1. **คอร์สอบรม DevOps หลักสูตรระยะสั้น**
+    - เรียนรู้ Docker, Kubernetes, Terraform, Datadog, Kong, GitOps, Microservices และ CI/CD
+
+2. **คอร์สการใช้ Next.js เพื่อพัฒนาเว็บและ API**
+    - TypeScript, React, Next.js, Routes, Zustand, Tailwind CSS, React Query, Shadcn
+
+3. **คอร์สอบรม MEAN Stack**
+    - MongoDB, Express.js, Angular 17, Node.js, Nx Monorepo
+
+4. **คอร์สสร้าง RESTful API ด้วยภาษา Go (Golang)**
+    - พื้นฐานภาษา Go, Gin framework, หลักการ RESTful API
