@@ -218,4 +218,178 @@ MVC (Model-view-controller)
 		และใน main.go เชื่อมดังนี้
 		config.InitDB()
 		defer config.CloseDB()
+migration
+	- gorm.Model จะเป็น stuck ที่เก็บตัวแปรไว้อยู่แล้ว
+		type Model struct { // size=88 (0x58)
+			ID        uint `gorm:"primarykey"`
+			CreatedAt time.Time
+			UpdatedAt time.Time
+			DeletedAt DeletedAt `gorm:"index"`
+		}
+	- Title string `gorm:"unique;not null"` //unique คือ ต้องไม่ซ้ำกัน และ ห้ามเป็น null
+	- การสร้าง
+		type Article struct {
+			// ID    uint   `json:"id"`
+			// Title string `json:"title"`
+			// Body  string `json:"body"`
+			// Image string `json:"image"`
+			gorm.Model //Embed struck ของ gorm model ไว้เพื่อ เอาเข้าตัวแปรมาตั้งต้นไว้
+			Title string `gorm:"unique;not null"`
+			Excerpt string `gorm:"not null"`
+			Body string `gorm:"not null"`
+			Image string `gorm:"not null"`
+		}
+	- การ migration 
+		- ยกตัวอย่างถ้าเราอัพโค้ดขึ้นไปครั้งแรกจะเกิดการ migration คือการสร้าง table และ field ขึ้นมาใหม่ ขอแยกเป็น 2 ฝั่ง คือ development และ production
+			- development มี table=article(field1:Title) และถูก up ขึ้นไปแล้วทางฝั่ง production 
+				- ถ้าฝั่ง develope แก้ไข field table=article(field1:Body) แล้ว up ขึ้นไป ถ้ามีเกิดข้อผิดพลากหลังจาก up แล้วต้องเกิดการ down หรือ rollback กลับด้วย
+					- ซึ่งเราจะต้องเขียนดักข้อมูลตรงนี้ไว้ให้เกิดการ rollback
+	- การสร้าง migration การสร้างข้อมูลใหม่ในฐานข้อมูล
+		- จะใช้ libary ที่ชื่อว่า gormigrate
+		- การสร้าง table และ การ Rollback
+			1.สร้าง folder migrations
+			2.สร้างไฟล์สำหรับ migration ต่างๆ ยกตัวอย่างเช่น
+				m1747737106_create_article_table.go
+					package migrations
+					import (
+						"go-gin/models"
+						"github.com/go-gormigrate/gormigrate/v2"
+						"gorm.io/gorm"
+					)
+					func m1747737106CreateArticlesTable() *gormigrate.Migration {
+						return &gormigrate.Migration{
+							ID: "1747737106", // ID เป็น timestamp
+							Migrate: func(tx *gorm.DB) error {
+								return tx.AutoMigrate(&models.Article{}) // จะ return error มาให้เลย ถ้าไม่เท่ากับ null จะ error
+							},
+							Rollback: func(tx *gorm.DB) error {
+								return tx.Migrator().DropTable("articles") // จะ return error มาให้เลย ถ้าไม่เท่ากับ null จะ error
+							},
+						}
+					}
+			3.สร้างไฟล์ migration สำหรับ เรียกใช้งาน m1747737106CreateArticlesTable()
+				package migrations
+				import (
+					"go-gin/config"
+					"log"
+					"github.com/go-gormigrate/gormigrate/v2"
+				)
+				func Migrate() {
+					// สำหรับเรียกใช้การทำงาน
+					m := gormigrate.New(
+						config.GetDB(),
+						gormigrate.DefaultOptions,
+						[]*gormigrate.Migration{m1747737106CreateArticlesTable()},
+					)
+					ดักกรณี error
+					if err := m.Migrate(); err != nil {
+						log.Fatalf("Migration failed: %v", err)
+					}
+				}
+			4.เรียกใช้ใน main
+				migrations.Migrate()
+	- CRUD (gorm)
+		- แนะนำให้ดูควบคตู๋กับ GORM doc
+		- create ตัวอย่างโค้ด และคำอธิบาย
+			type createArticle struct {
+				Title   string                `form:"title" binding:"required"`
+				Body    string                `form:"body" binding:"required"`
+				Excerpt string                `form:"excerpt" binding:"required"`
+				Image   *multipart.FileHeader `form:"image" binding:"required"`
+			}
+			type articleSuccess struct {
+				ID      uint   `json:"id"`
+				Title   string `json:"title"`
+				Excerpt string `json:"excerpt"`
+				Body    string `json:"body"`
+				Image   string `json:"image"`
+			}
+			type Article struct {
+				DB *gorm.DB
+			}
+			func (a *Article) Create(ctx *gin.Context) {
+				// ประกาศตัวแปรที่เก็บ struct ของ createArticle
+				var form createArticle
+				// ดัก error ถ้า ctx.ShouldBind(&form) ไม่เท่ากับ null ให้แสดง key เป็น error และแสดงค่าที่ error ออกไป err.Error()
+				if err := ctx.ShouldBind(&form); err != nil {
+					ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+					return
+				}
+				// ถ้าไม่ error ให้ทำการดึงข้อมูลมาเก็บใน struck ของ article
+				var article models.Article
+				// copier.Copy(เอาข้อมูล stuck จาก param2 มาใส่ , copy struck ที่ต้องการไปใส่ใน param1)
+				copier.Copy(&article, &form)
+
+				// เชื่อมต่อ DB และส่งข้อมูลไปใน DB
+				if err := a.DB.Create(&article).Error; err != nil {
+					ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+				}
+
+				errImage := a.setArticleImage(ctx, &article)
+				if errImage != nil {
+					log.Fatal("error insert image")
+					return
+				}
+				articleSuccess := articleSuccess{}
+				copier.Copy(&articleSuccess, &article)
+				ctx.JSON(http.StatusCreated, gin.H{"articles": articleSuccess})
+			}
+			func (a *Article) setArticleImage(ctx *gin.Context, article *models.Article) error {
+				// get image file
+				file, err := ctx.FormFile("image")
+				// เช็คว่ามี error หรือ file ได้ถูกส่งมามาไหม
+				if err != nil || file == nil {
+					return err
+				}
+
+				// กรณีมีไฟล์อยู่แล้วต้องการอัพเดท
+				if article.Image != "" {
+					//แล้วค่าเป็นดังนี้ http://127.0.0.1:8080/uploads/articles/<ID>/image.jpg
+					//1 ทำให้หรือแค่นี้ /uploads/articles/<ID>/image.jpg
+					// strings.Replace(string ต้นฉบับที่ต้องการ replace , อักษรที่ต้องการเปลี่ยน , เปลี่ยนเป็นอะไร , จำทำการ replace กี่ครั้ง)
+					article.Image = strings.Replace(article.Image, os.Getenv("HOST"), "", 1)
+					//2 กำหนดใหม่ <WD หรือ path ปัจจุบันที่รันอยู่>/uploads/articles/<ID>/image.jpg
+					// get <WD>
+					pwd, _ := os.Getwd()
+					//3 Remove <WD หรือ path ปัจจุบันที่รันอยู่>/uploads/articles/<ID>/image.jpg
+					os.Remove(pwd + article.Image)
+				}
+				//Create Path
+				path := "uploads/articles/" + strconv.Itoa(int(article.ID))
+				os.MkdirAll(path, 0775)
+				//Upload file
+				filename := path + "/" + file.Filename
+				if err := ctx.SaveUploadedFile(file, filename); err != nil {
+					return err
+				}
+				// Attach file to article
+				article.Image = os.Getenv("HOST") + "/" + filename
+				// update article.image
+				a.DB.Save(article)
+				return nil
+			}
+		- Read หรือ Query
+			- ตัวอย่างโค้ดการทำงาน หาแบบรายไอดี articlesGroup.GET("/:id", articlesController.ArticleFindById)
+				func (a *Article) ArticleFindById(ctx *gin.Context) {
+					var article models.Article
+					id := ctx.Param("id")
+					if err := a.DB.First(&article, id).Error; err != nil {
+						// SELECT * FROM articles WHERE id = ค่าของ id;
+						ctx.JSON(http.StatusBadRequest, gin.H{"Error": "not found id"})
+						return
+					}
+					ctx.JSON(http.StatusOK, gin.H{"article": article})
+				}
+			- ตัสอย่างโค้ดการทำงานแบบ find all
+				func (a *Article) FindAll(ctx *gin.Context) {
+					var articles []models.Article
+					if err := a.DB.Find(&articles).Error; err != nil {
+						// a.DB.Find(&articles) = SELECT * FROM users;
+						ctx.JSON(http.StatusNotFound, gin.H{"error": err})
+						return
+					}
+					ctx.JSON(http.StatusOK, gin.H{"articles": articles})
+				}
+		- การสร้างการทำงานของ Pagination
+			- การแบ่งข้อมูลการเข้าถึงเป็น page เพื่อลดการประมวลผลในกรณีที่ข้อมูลมีเยอะมากๆ
 ############################################ END.. การเชื่อมต่อฐานข้อมูลและใช้งาน GORM ############################################

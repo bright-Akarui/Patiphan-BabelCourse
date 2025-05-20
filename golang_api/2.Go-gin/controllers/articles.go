@@ -28,6 +28,8 @@ type Article struct {
 
 func (a *Article) FindAll(ctx *gin.Context) {
 	result := articles
+	// ctx.Query("limit") หมายความว่า หา key ที่ชื่อ limit และเอาค่ามา ยกตัวอย่างเช่น article?limit=3
+	// limit = 3
 	limit := ctx.Query("limit")
 	if limit != "" {
 		n, _ := strconv.Atoi(limit)
