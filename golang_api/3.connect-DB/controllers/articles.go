@@ -21,30 +21,90 @@ type createArticle struct {
 	Image   *multipart.FileHeader `form:"image" binding:"required"`
 }
 
+type udpateArticle struct {
+	Title   string                `form:"title"`
+	Body    string                `form:"body"`
+	Excerpt string                `form:"excerpt"`
+	Image   *multipart.FileHeader `form:"image"`
+}
+
 type articleSuccess struct {
-	ID      uint   `json:"id"`
-	Title   string `json:"title"`
-	Excerpt string `json:"excerpt"`
-	Body    string `json:"body"`
-	Image   string `json:"image"`
+	ID          uint   `json:"id"`
+	Title       string `json:"title"`
+	Excerpt     string `json:"excerpt"`
+	Body        string `json:"body"`
+	Image       string `json:"image"`
+	ID_Category int    `json:"id_Category"`
+	Category    struct {
+		ID   uint   `json:"id"`
+		Name string `json:"name"`
+	} `json:"category"`
+}
+
+type articlePaging struct {
+	Items  []articleSuccess `json:"items"`
+	Paging *pagingResult    `json:"Paging"`
 }
 
 type Article struct {
 	DB *gorm.DB
 }
 
+func (a *Article) DeleteArticle(ctx *gin.Context) {
+	var article models.Article
+	id := ctx.Param("id")
+
+	if err := a.DB.First(&article, id).Error; err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "not found id"})
+		return
+	}
+	//ถ้าต้องการลบแบบไม่ต้องเพิ่มเข้าไปใน delete_ay column
+	//a.DB.Unscoped().Delete(&article)
+	if err := a.DB.Delete(&article).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete article"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"successDelete": "success delete"})
+}
+
+func (a *Article) UpdateArticle(ctx *gin.Context) {
+	// สร้าง struck และกำหนด struck ให้ form
+	var form udpateArticle
+	if err := ctx.ShouldBind(&form); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+	var articles models.Article
+	id := ctx.Param("id")
+	if err := a.DB.First(&articles, id).Error; err != nil {
+		// SELECT * FROM articles WHERE id = ค่าของ id;
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "not found id"})
+		return
+	}
+	if err := a.DB.Model(&articles).Updates(&form).Error; err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"updateError": err.Error()})
+		return
+	}
+	articleSuccess := articleSuccess{}
+	copier.Copy(&articleSuccess, &articles)
+	ctx.JSON(http.StatusOK, gin.H{"updateAticle": articleSuccess})
+}
+
 func (a *Article) FindAll(ctx *gin.Context) {
 	var articles []models.Article
 
-	if err := a.DB.Find(&articles).Error; err != nil {
-		// a.DB.Find(&articles) = SELECT * FROM articles;
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "not found article"})
-		return
-	}
+	// if err := a.DB.Find(&articles).Error; err != nil {
+	// 	// a.DB.Find(&articles) = SELECT * FROM articles;
+	// 	ctx.JSON(http.StatusNotFound, gin.H{"error": "not found article"})
+	// 	return
+	// }
 	// res := []articleSuccess{}
+	pagination := pagination{ctx: ctx, query: a.DB, records: &articles}
+	paging := pagination.pagingResource()
 	var res []articleSuccess
 	copier.Copy(&res, &articles)
-	ctx.JSON(http.StatusOK, gin.H{"articles": res})
+	ctx.JSON(http.StatusOK, gin.H{"articles": articlePaging{Items: res, Paging: paging}})
 }
 
 func (a *Article) Create(ctx *gin.Context) {
@@ -111,10 +171,12 @@ func (a *Article) setArticleImage(ctx *gin.Context, article *models.Article) err
 func (a *Article) ArticleFindById(ctx *gin.Context) {
 	var article models.Article
 	id := ctx.Param("id")
-	if err := a.DB.First(&article, id).Error; err != nil {
+	if err := a.DB.Preload("Category").First(&article, id).Error; err != nil {
 		// SELECT * FROM articles WHERE id = ค่าของ id;
 		ctx.JSON(http.StatusBadRequest, gin.H{"Error": "not found id"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"article": article})
+	res := articleSuccess{}
+	copier.Copy(&res, &article)
+	ctx.JSON(http.StatusOK, gin.H{"articles": res})
 }

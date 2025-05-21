@@ -227,7 +227,7 @@ migration
 			DeletedAt DeletedAt `gorm:"index"`
 		}
 	- Title string `gorm:"unique;not null"` //unique คือ ต้องไม่ซ้ำกัน และ ห้ามเป็น null
-	- การสร้าง
+	- การสร้าง Model
 		type Article struct {
 			// ID    uint   `json:"id"`
 			// Title string `json:"title"`
@@ -246,6 +246,18 @@ migration
 					- ซึ่งเราจะต้องเขียนดักข้อมูลตรงนี้ไว้ให้เกิดการ rollback
 	- การสร้าง migration การสร้างข้อมูลใหม่ในฐานข้อมูล
 		- จะใช้ libary ที่ชื่อว่า gormigrate
+		- จุดเริ่มต้นสร้าง model เพื่อกำหนด column ใน table ขึ้นมา
+			type Article struct {
+				// ID    uint   `json:"id"`
+				// Title string `json:"title"`
+				// Body  string `json:"body"`
+				// Image string `json:"image"`
+				gorm.Model //Embed struck ของ gorm model ไว้เพื่อ เอาเข้าตัวแปรมาตั้งต้นไว้
+				Title string `gorm:"unique;not null"`
+				Excerpt string `gorm:"not null"`
+				Body string `gorm:"not null"`
+				Image string `gorm:"not null"`
+			}
 		- การสร้าง table และ การ Rollback
 			1.สร้าง folder migrations
 			2.สร้างไฟล์สำหรับ migration ต่างๆ ยกตัวอย่างเช่น
@@ -260,6 +272,7 @@ migration
 						return &gormigrate.Migration{
 							ID: "1747737106", // ID เป็น timestamp
 							Migrate: func(tx *gorm.DB) error {
+								// ตรวจสอบว่ามี tables ชื่อ articles หรือยังไ ถ้ายังไม่มีจะทำการสร้าง table ขึ้นมา
 								return tx.AutoMigrate(&models.Article{}) // จะ return error มาให้เลย ถ้าไม่เท่ากับ null จะ error
 							},
 							Rollback: func(tx *gorm.DB) error {
@@ -392,4 +405,142 @@ migration
 				}
 		- การสร้างการทำงานของ Pagination
 			- การแบ่งข้อมูลการเข้าถึงเป็น page เพื่อลดการประมวลผลในกรณีที่ข้อมูลมีเยอะมากๆ
+			- ตัวอย่างการทำงาน
+			- 1. การสร้าง
+				package controllers
+
+				import (
+					"math"
+					"strconv"
+
+					"github.com/gin-gonic/gin"
+					"gorm.io/gorm"
+				)
+
+				type pagingResult struct {
+					Page      int `json:"page"`
+					Limit     int `json:"limit"`
+					PrevPage  int `json:"prevPage"`
+					NextPage  int `json:"nextPage"`
+					Count     int `json:"count"`
+					TotalPage int `json:"totalPage"`
+				}
+
+				type pagination struct {
+					ctx     *gin.Context
+					query   *gorm.DB
+					records interface{}
+				}
+
+				func (p *pagination) pagingResource() *pagingResult {
+					// 1. Get limit, page ? limit=10&page=2
+					// ctx.Query("limit")
+					// กรณที่ไม่ได้ระบุค่า limit เข้ามา จะ default เป็น 12
+					limit, _ := strconv.Atoi(p.ctx.DefaultQuery("limit", "10"))
+					page, _ := strconv.Atoi(p.ctx.DefaultQuery("page", "1"))
+					ch := make(chan int)
+					// 2. Count records มีข้อมูลทั้งหมดกี่ตัว
+					go p.countRecord(ch)
+					// 3. Find Records
+					// สูตรหาค่าของ offset
+					offset := (page - 1) * limit
+					p.query.Limit(limit).Offset(offset).Find(p.records)
+					// SELECT * FROM users OFFSET 5 LIMIT 10;
+
+					// 4. total nextPage จำนวนของ page ทั้งหมด
+					count := <-ch
+					totalPage := int(math.Ceil(float64(count) / float64(limit)))
+
+					// 5. Find nextPage
+					var nextPage int
+					if page == totalPage {
+						nextPage = totalPage
+					} else {
+						nextPage = page + 1
+					}
+
+					// 6. create pagingResult
+					return &pagingResult{
+						Page:      page,
+						Limit:     limit,
+						PrevPage:  page - 1,
+						NextPage:  nextPage,
+						Count:     int(count),
+						TotalPage: totalPage,
+					}
+				}
+				func (p *pagination) countRecord(ch chan int) {
+					// 2. Count records มีข้อมูลทั้งหมดกี่ตัว
+					var count int64
+					// SELECT COUNT(*) FROM records;
+					p.query.Model(p.records).Count(&count)
+					ch <- int(count)
+				}
+			2. การใช้งาน
+				func (a *Article) FindAll(ctx *gin.Context) {
+					var articles []models.Article
+
+					// if err := a.DB.Find(&articles).Error; err != nil {
+					// 	// a.DB.Find(&articles) = SELECT * FROM articles;
+					// 	ctx.JSON(http.StatusNotFound, gin.H{"error": "not found article"})
+					// 	return
+					// }
+					// res := []articleSuccess{}
+					pagination := pagination{ctx: ctx, query: a.DB, records: &articles}
+					paging := pagination.pagingResource()
+					var res []articleSuccess
+					copier.Copy(&res, &articles)
+					ctx.JSON(http.StatusOK, gin.H{"articles": articlePaging{Items: res, Paging: paging}})
+				}
+		- update 
+			func (a *Article) UpdateArticle(ctx *gin.Context) {
+				// สร้าง struck และกำหนด struck ให้ form
+				var form udpateArticle
+				if err := ctx.ShouldBind(&form); err != nil {
+					ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+					return
+				}
+				var articles models.Article
+				id := ctx.Param("id")
+				if err := a.DB.First(&articles, id).Error; err != nil {
+					// SELECT * FROM articles WHERE id = ค่าของ id;
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "not found id"})
+					return
+				}
+				if err := a.DB.Model(&articles).Updates(&form).Error; err != nil {
+					ctx.JSON(http.StatusBadRequest, gin.H{"updateError": err.Error()})
+					return
+				}
+				articleSuccess := articleSuccess{}
+				copier.Copy(&articleSuccess, &articles)
+				ctx.JSON(http.StatusOK, gin.H{"updateAticle": articleSuccess})
+			}
+		- Delete
+			func (a *Article) DeleteArticle(ctx *gin.Context) {
+				var article models.Article
+				id := ctx.Param("id")
+
+				if err := a.DB.First(&article, id).Error; err != nil {
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "not found id"})
+					return
+				}
+
+				if err := a.DB.Delete(&article).Error; err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete article"})
+					return
+				}
+
+				ctx.JSON(http.StatusOK, gin.H{"successDelete": "success delete"})
+			}
+	- Associations
+		- จะเหมือนกับการ join table
+	- Database Seeding
+		- เตรียมข้อมูลสำหัรบการทดสอบบน development
+		- สำหรับการสร้าง fake data เข้าไปที่ database มาเพื่อทดสอบการใช้งาน
+		- ขัเนตอนการสร้าง
+			1. สร้าง package seed
+			2. สร้าง seed.go
+				func Load(){
+					//1.เชื่อมฐานข้อมูล
+				}
 ############################################ END.. การเชื่อมต่อฐานข้อมูลและใช้งาน GORM ############################################

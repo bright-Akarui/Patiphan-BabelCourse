@@ -11,7 +11,11 @@ func Migrate() {
 	m := gormigrate.New(
 		config.GetDB(),
 		gormigrate.DefaultOptions,
-		[]*gormigrate.Migration{m1747737106CreateArticlesTable()},
+		[]*gormigrate.Migration{
+			m1747737106CreateArticlesTable(),
+			m1747841916CreateArticlesTable(),
+			m1747844730CreateArticlesTable(),
+		},
 	)
 	if err := m.Migrate(); err != nil {
 		log.Fatalf("Migration failed: %v", err)

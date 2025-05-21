@@ -7,15 +7,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func m1747737106CreateArticlesTable() *gormigrate.Migration {
+func m1747841916CreateArticlesTable() *gormigrate.Migration {
 	return &gormigrate.Migration{
-		ID: "1747737106",
+		ID: "1747841917",
 		Migrate: func(tx *gorm.DB) error {
 			//ตรวจสอบว่ามี tables ชื่อ articles หรือยังไ ถ้ายังไม่มีจะทำการสร้าง table ขึ้นมา
-			return tx.AutoMigrate(&models.Article{}) // จะ return error มาให้เลย
+			return tx.AutoMigrate(&models.Category{}) // จะ return error มาให้เลย
 		},
 		Rollback: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("articles") // จะ return error มาให้เลย
+			return tx.Migrator().DropTable("categories") // จะ return error มาให้เลย
 		},
 	}
 }
