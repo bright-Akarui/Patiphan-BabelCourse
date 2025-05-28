@@ -112,9 +112,77 @@ Next.js
             // type GetThemeReturn = ReturnType<getTheme> //ไม่สามารถใช้ typescript ได้
             type GetThemeReturn = ReturnType<typeof getTheme> //สามารถใช้ typescript ได้ จะได้{colos: {primary: 'eeeeee',secondary: 'fffff'}}
             type Colors = GetThemeReturn['colors'] //เข้าถึงชนิดข้อมูล colos หรือ type ของมัน จะได้ primary: string,secondary: string
-            type ColorKeys = keyof // จะได้ "primary","secondary"
+            type ColorKeys = keyof ;// จะได้ "primary","secondary"
+
 - React และ Next.js
     - npm create next-app@latest
         - code project-name
     - สำหรับตรวจสอบว่าโค้ดได้มาตรฐานไหม
         - npm add -D eslint-config-next eslint-config-prettier eslint-plugin-prettier prettier prettier-plugin-tailwindcss @typescript-eslint/eslint-plugin
+- การใช้งาน useEffect แบบ connect และ close
+    - useEffect(() => {
+        connect(id)
+
+        //Unmounting or Cleanup
+        return () => close(id);
+    }, [id])
+- การดึงข้อมูลเข้ามาตรงๆ หรือเชื่อมกับฐานข้อมูลตรงๆ และการจัดการข้อมูลจากการดึงข้อมูลฃ
+    - เราสามารถระบุในไฟล์ได้ว่า ไฟล์นี้จะถูกกระทำที่ฝั่ง server หรือฝั่ง client โดยการระบุดังนี้
+        - 'use client'
+        - 'use server'
+    - ssg,ssr,isr
+        - ssg คือ การที่ next.js สร้างไฟล์ html ขึ้นมาหลังจาก build และส่งให้ทางฝั่ง client และจะไม่ถูกสร้าง html ใหม่อีก
+        - ssr คือ การที่ next.js สร้างไฟล์ html ขึ้นมาหลังจาก build และส่งให้ทางฝั่ง client และจะถูกสร้างใหม่ทุกครั้งเมื่อมีการร้องขอเข้ามา
+        - isr คือ การที่ next.js สร้างไฟล์ html ขึ้นมาหลังจาก build และส่งให้ทางฝั่ง client และจะถูกสร้างใหม่ทุกๆ กี่นาทีตามทำเรากำหนด
+    - ถ้าไม่ใส่อะไรเลยคือ "ssg"
+    - ถ้าใช้วิธีการดึงข้อมูลตครงๆโดยไม่ผ่านการ fetch เพื่อที่จะให้ได้ข้อมูลไหมต้องใส่ดังตัวอย่างเพื่อให้ข้อมูลเป็น dynamic หรือการทำ "ssr"
+        - export const dynamic = 'force-dynamic'
+    - การทำ static หรือ การ revalidate ทุกๆ 15 วินาที หรือการทำ "isr"
+        - export const revalidate = 15
+- การจัดการการดึงข้อมูลผ่าน API หรือ การ fetch
+    - หาต้องการให้ build ใหม่ทุกครั้ง หรือใช้เป็นวิธีของ "ssr" ต้องใช้ {cache: 'no-store'} จะได้ข้อมูลใหม่เสมอ
+        - ยกตัวอย่างเช่น
+        - const res = awwait fetch(`http://localhost:5151/articles/${id}`,{cache: 'no-store'})
+    - หาต้องการให้ build ทุกๆกี่นาทีตามที่เรากำหนด หรือใช้เป็นวิธีของ "isr" ต้องใช้ {next: {revalidate: 15}} จะได้ข้อมูลใหม่เสมอ
+        - ยกตัวอย่างเช่น
+        - const res = awwait fetch(`http://localhost:5151/articles/${id}`,{next: {revalidate: 15}})
+        - ถ้าใช้จะต้องกำหนดข้อมูลตั้งต้นให้ด้วย
+            - export const generateStaticParams = () =>{
+                return [{id:'1'}]
+            }
+-Next.js API
+    - CRUD Example
+        - การรับ parameter จะรับได้ 2 ตัวแปร 1.Request 2.id (req: Request,{ params: { id }}: Params)
+            - Request คือ body ที่ถูกส่งเข้ามาดำเนินการ
+            - ยกตัวอย่างเช่น export const PATCH = async (req: Request,{ params: { id }}: Params)
+        - Read or GET
+            export const GET = () => {
+            const articles = [{id:1},{id:2}]
+            return new Response(JSON.stringify(articles),{
+                status: 200,
+                headers: {
+                'Content-Type': 'application/json'
+                }
+            })
+            }
+        - Create or POST
+            export const POST = async (req: Request) => {
+                const form = await (req.json() as Promise<CreateArticleInput>);
+                const formValidation = await add.safeParseAsync(form);
+
+                if(!formValidation.success) {
+                    return new Response(JSON.stringify(formValidation.error),{
+                    status: 422,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                    })
+                }
+                const article = await create(formValidation.data);
+                return new Response(JSON.stringify(article),{
+                    status: 201,
+                    headers: {
+                    'Content-Type': 'application/json'
+                    }
+                })
+            }
