@@ -1,0 +1,3 @@
+p, Admin, /api/v1/categories, (GET)|(POST)
+p, Admin, /api/v1/categories/*, (GET)|(POST)
+p, (Admin)|(Editor), /api/v1/articles, (POST)

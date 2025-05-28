@@ -539,8 +539,53 @@ migration
 		- สำหรับการสร้าง fake data เข้าไปที่ database มาเพื่อทดสอบการใช้งาน
 		- ขัเนตอนการสร้าง
 			1. สร้าง package seed
-			2. สร้าง seed.go
+			2. สร้าง seed.go และ func Load()
 				func Load(){
 					//1.เชื่อมฐานข้อมูล
 				}
+			3. สร้างdการ mockdata ด้วย libary faker ของ go package
 ############################################ END.. การเชื่อมต่อฐานข้อมูลและใช้งาน GORM ############################################
+
+############################################ Start.. Authentication และ Authorization ############################################
+Authentication การยืนยันตัวตน ดูว่าเราเป็นใครและมี password ไหม
+	- การเข้า password จะผ่านการ bcrypt
+	- ทุกครั้งที่ user ล็อคอินเข้ามาเราต้องส่งอะไรกลับไปให้ client นั้นคือ
+		- json web token
+			- <HEADER>.<PAYLOAD>.<SIGNATURE>
+				- <HEADER> จะใช้
+					{
+						"alg": "HS256" // algorithm ที่ใช้ คือ Hash256
+						"typ":"JWT" //tyoe ที่ใช้ คือ json web token
+					}
+					แล้วจะ encode ด้วย base64 จะได้ string ค่าหนึ่งออกมา
+				- <PAYLOAD> ใส่ค่าข้อมูลที่ต้องการเก็บ  (จะไม่ใส่ข้อมูลที่เป็นความลับ)จะใช้ 
+					{
+						"sub": "1233321" //user id
+						"name":"john" //
+						"admin":true //
+					}
+					แล้วจะ encode ด้วย base64 จะได้ string ค่าหนึ่งออกมา
+				- <SIGNATURE> เกิดจากการเอา base64 ในส่วน <HEADER> มารวมกับ base64 ในส่วนของ<PAYLOAD> และเชื่อมด้วย Secret
+					HMACSHA256{
+						base64UrlEncode(header) + "." +
+						base64UrlEncode(payload),
+						secret //key ของ server เก็บไว้เป็นความลับ
+					}
+		- ตัวอย่าง model และ func GenerateEncryptedPassword
+			type User struct {
+				gorm.Model
+				Email    string `gorm:"unique;not null"`
+				Password string `gorm:"not null"`
+				Name     string `gorm:"not null"`
+				Avatar   string
+				Role     string `gorm:"type:varchar(20);default:'Member';not null"`
+			}
+
+			func (u *User) GenerateEncryptedPassword() string {
+				hash, _ := bcrypt.GenerateFromPassword([]byte(u.Password), 14)
+				return string(hash)
+			}
+			- ตอนสร้าง controller เพื่อ signup ก็ใช้ GenerateEncryptedPassword() เก็บใน password
+		
+Authorization ตรวจสอบสิทธิ์ว่าเราเข้าถึงสรรพยาการณ์อะไรได้บ้าง
+############################################ End.. Authentication และ Authorization ############################################

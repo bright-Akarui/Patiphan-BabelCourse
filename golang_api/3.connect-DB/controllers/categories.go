@@ -38,6 +38,13 @@ func (a *Category) FindAllCategories(ctx *gin.Context) {
 }
 
 func (a *Category) CreatCategory(ctx *gin.Context) {
+	//ตรวจสอบ Role
+	// sub, _ := ctx.Get("sub")
+	// if sub.(*models.User).Role != "Admin" {
+	// 	ctx.JSON(http.StatusForbidden, gin.H{"error": "role not match"})
+	// 	return
+	// }
+
 	// ประกาศตัวแปรที่เก็บ struct ของ createArticle
 	var form creatCategory
 	// ดัก error ถ้า ctx.ShouldBind(&form) ไม่เท่ากับ null ให้แสดง key เป็น error และแสดงค่าที่ error ออกไป err.Error()
@@ -56,5 +63,5 @@ func (a *Category) CreatCategory(ctx *gin.Context) {
 	}
 	categorySuccess := categoriesSuccess{}
 	copier.Copy(&categorySuccess, &category)
-	ctx.JSON(http.StatusCreated, gin.H{"articles": categorySuccess})
+	ctx.JSON(201, gin.H{"articles": categorySuccess})
 }
