@@ -10,7 +10,7 @@
 |------|------|------------|----------------|
 | React Fundamentals ของ udemy | จบแล้ว | 100% | 14 พฤษภาคม 2025 |
 | RESTful API ด้วย Go | กำลังเรียน | 100% | 22 พฤษภาคม 2025 |
-| Next.js Development | รอเริ่ม | 50% | 28 พฤษภาคม 2025 |
+| Next.js Development | รอเริ่ม | 85% | 28 พฤษภาคม 2025 |
 | DevOps หลักสูตรระยะสั้น | รอเริ่ม | 0% | - |
 
 > **หมายเหตุ**: คุณสามารถดูรายละเอียดความคืบหน้าของแต่ละคอร์สได้ในโฟลเดอร์ที่เกี่ยวข้อง:
@@ -88,6 +88,3 @@
 
 2. **คอร์สอบรม DevOps หลักสูตรระยะสั้น**
     - เรียนรู้ Docker, Kubernetes, Terraform, Datadog, Kong, GitOps, Microservices และ CI/CD
-
-3. **คอร์สอบรม MEAN Stack**
-    - MongoDB, Express.js, Angular 17, Node.js, Nx Monorepo
