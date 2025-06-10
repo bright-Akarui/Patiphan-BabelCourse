@@ -1,3 +1,4 @@
+```yml
 DevOps (development และ operations)
     1  จุดเดน่คือ ทำแบบ automate และส่งให้ลูกค้าได้เร็ว
         1. การรวมตัว
