@@ -446,3 +446,185 @@ Next.js
             สามารถใช้งานได้ 2 รูปแบบ
             1.multiple store
             2.single store
+        - ตัวอย่าง func ที่สร้างเพื่อเรียกใช้งาน toast
+            import { create } from 'zustand';
+            import { immer } from 'zustand/middleware/immer';
+            import { devtools } from 'zustand/middleware';
+            export interface UiState {
+            toast: {
+                type: 'Success' | 'Error';
+                message: string;
+            } | null;
+            setToast: (toast: UiState['toast']) => void;
+            clearToast: () => void;
+            }
+            export const useUiStore = create<UiState>()(
+            immer(
+                devtools((set, get) => {
+                return {
+                    toast: null,
+                    setToast(toast) {
+                    set(
+                        (state) => {
+                        state.toast = toast;
+                        },
+                        false,
+                        { type: 'ui/setToast', toast },
+                    );
+                    setTimeout(() => {
+                        get().clearToast();
+                    }, 3_000);
+                    },
+                    clearToast() {
+                    set(
+                        (state) => {
+                        state.toast = null;
+                        },
+                        false,
+                        { type: 'ui/clearToast' },
+                    );
+                    },
+                };
+                }),
+            ),
+            );
+
+            // การเรียกใช้งาน func 
+            const [toast, clearToast] = useUiStore(
+                useShallow((state) => [state.toast, state.clearToast]),
+            );
+            return <div>;
+                {toast.message}
+                <button type="button" onClick={clearToast}>
+            </div>
+    -Auth.js
+        - ตัว libary นี้ จะช่วยการล็อคอินหรือล็อคเอ้าท์ให้ และจะสร้าง cookie ไว้ให้เรียกใช้งาน ข้อมูลผู้ใช้
+        - การติดตั้งดูได้ที่ doc Auth.js
+        - การใช้งาน
+            1. สร้างการตั้งค่า
+                export const authOptions = {
+                session: {
+                    strategy: 'jwt',
+                },
+                callbacks: {
+                    jwt({ token, user, session, trigger }) {
+                    if (trigger === 'update' && isUpdateSessionData(session)) {
+                        if (session.image) token.picture = session.image;
+                        if (session.name) token.name = session.name;
+                        if (session.email) token.email = session.email;
+                    }
+
+                    if (user) {
+                        token.sub = user.id;
+                        token.email = user.email;
+                        token.role = user.role;
+                        token.name = user.name;
+                        token.picture = user.image;
+                    }
+
+                    return token;
+                    },
+                    session({ session, token }) {
+                    return {
+                        ...session,
+                        user: {
+                        ...session.user,
+                        id: token.sub,
+                        role: token.role,
+                        name: token.name,
+                        email: token.email,
+                        image: token.picture,
+                        },
+                    };
+                    },
+                },
+                providers: [
+                    CredentialsProvider({
+                    name: 'Credentials',
+                    credentials: {
+                        email: { label: 'Email', type: 'email ' },
+                        password: { label: 'Password', type: 'password' },
+                    },
+                    async authorize(credentials) {
+                        const user = await db.user.findUnique({
+                        where: {
+                            email: credentials?.email,
+                        },
+                        });
+
+                        if (!user) return null;
+                        if (!credentials?.password) return null;
+                        if (!(await bcrypt.compare(credentials.password, user.password))) {
+                        return null;
+                        }
+
+                        return { ...user, id: user.id.toString() };
+                    },
+                    }),
+                ],
+                } satisfies NextAuthOptions;
+
+            1. เรียกใช้การตั้งค่า
+                import { authOptions } from '@/features/auth/auth';
+                import NextAuth from 'next-auth';
+                const handler = NextAuth(authOptions);
+                export { handler as GET, handler as POST };
+            2. การใช้งาน signIn 
+                "use client"
+                import { signIn } from "next-auth/react"
+                
+                export function SignIn() {
+                return (
+                    <button onClick={() => signIn("github", { redirectTo: "/dashboard" })}>
+                    Sign In
+                    </button>
+                )
+                }
+            3. การดึงค่าสถานะมาจาก auth.js
+                ใช้ตัว hook ที่ชื่อว่า useSeession()
+                ยกตัวอย่างเช่น
+                    "use client"
+                    import { useSession } from "next-auth/react"
+                    
+                    export default function Dashboard() {
+                    const { data: session } = useSession()
+                    
+                    if (session?.user?.role === "admin") {
+                        return <p>You are an admin, welcome!</p>
+                    }
+                    
+                    return <p>You are not authorized to view this page!</p>
+                    }
+    - Pararel route หรือ steaming ข้อมูล
+        - ปัญหาที่เราจะต้องใช้การใช้งานของตัว parararl นั้น จะใช้ในกรณีที่ ในหนึ่งหน้า page จะต้องโหลดข้อมูลหลายอย่างพร้อมๆกัน
+        - การทำงานแบบแยกการทำงานทำได้ หรือการทำงานแบบขนาน
+            - สร้าง folder ที่ขึ้นต้นด้วย @ ตัว react จะมองว่ามันคือ Parallel 
+        - ตัวอย่าง มันจะมองเป็น ReactNode ตัวหนึ่งและเรียกใช้งานได้เลย
+            import { type ReactNode } from 'react';
+            interface HomeLayoutProps {
+            children: ReactNode;
+            articles: ReactNode;
+            announcements: ReactNode;
+            }
+            const HomeLayout = ({ children, articles, announcements }: HomeLayoutProps) => {
+            return (
+                <>
+                {children}
+                {articles}
+                {announcements}
+                </>
+            );
+            };
+            export default HomeLayout;
+        - ตัว react สามารถสร้างไฟล์ error.tsx หรือ loading.tsx หรือ not-found.tsx ได้เพื่อจัดการการโหลดข้อมูล โดยที่ไม่ต้อง import เข้าหน้าที่ต้องการ
+    - intersect route 
+        - ปัญหาที่เราจะต้องใช้คือ 
+        - การแทรกกลางของการแสดงผล
+        . (.)[id]
+    - SEO
+        - กำหนด title
+            -meta data หรือที่ใส่ title ใน layout.tsx จะเป็นตัวบอกว่าหน้าเว็บเราชื่ออะไร
+        - กำหนด favicon
+        - กำหนดการแสดงผลจากการที่เราส่ง url ไปและต้องแสดง preview
+        - path ที่หาตาม id ควรหาคา slug มากกว่า
+        - set robot and sitemap เพื่อบ่งบอกว่า link ต่างๆที่อยู่หกน้าเว็บของเรามใีลักษณะเป็นอย่างไร
