@@ -171,6 +171,7 @@ Docker
             COPY . .
             RUN CGO_ENABLED=0 go build -o api
 ```
+```yml
         - คำสั่งสร้าง docler image
             - docker build -t ชื่อในdockerHub:version .(dot ตรงนี้คือ dir ปัจจุบันของ Dockerfile)
              - docker build -t patiphansak/devops-api:1.0 .
@@ -182,3 +183,14 @@ Docker
             - Security mechanism: กลไกของเรื่องความปลอดภัย ไม่ว่าจะเป็นการเข้าถึงบางเซอร์วิสที่ต้องผ่านการลอคอินก่อน หรือการทำ logging เป็นต้น
     - Terraform
         - ใช้บริการ digital ocean
+        - อ่าน doc และทำตาม
+GitOps
+Kubernetes
+    - Container Orchestration
+        - Container Orchestration เป็นกระบวนการที่ใช้เทคโนโลยีอัตโนมัติในการจัดการวงจรชีวิตของคอนเทนเนอร์ ซึ่งรวมถึงการจัดสรรทรัพยากร การปรับขนาด (ขยายและย่อ) การจัดการเครือข่าย และการดูแลความพร้อมใช้งาน
+        - ปํญหาที่ทำไมเราต้องใช้ตัวนี้ คือ ทำอย่างไรจึงจะสามารถ Scale คอนเทนเนอร์ขึ้นมาหลายตัวได้อย่างอัตโนมัติเพื่อรองรับโหลดของผู้ใช้งานเมื่อทรัพยากรถึงขีดจำกัดที่กำหนด หรือเราจะสามารถจัดการการเชื่อมต่อเน็ตเวิร์กของคอนเทนเนอร์ที่หลากหลายได้อย่างไร เป็นต้น ปัญหาต่าง ๆ เหล่านี้สามารถแก้ไขได้ด้วย Container Orchestration
+    - Control Plane: หัวใจของ Kubernetes Cluster ที่ควบคุมการทำงานทั้งหมด ส่วนนี้ประกอบด้วย:
+        - kube-apiserver: เป็นหน้าตาของ Kubernetes Control Plane รวม API ให้เรียกใช้งานเพื่อจัดการคำขอจากภายในระบบ Cluster และภายนอกระบบ Cluster
+        - kube-scheduler: ตรวจสอบสภาพความพร้อมของ Cluster และกำหนดการทำงานของ Pod ให้กับ Node ที่เหมาะสม
+        - kube-controller-manager: มีการตรวจสอบทรัพยากรปัจจุบันว่ามีสถานะเป็นเช่นไร (Current State) Controller Manager จะพยายามเปลี่ยนแปลงสถานะปัจจุบันให้เป็นสถานะที่ต้องการ (Desired State)
+        - Cloud Controller Manager: ส่วนนี้ใช้เพื่อติดต่อกับ Cloud Provider API เพื่อจัดการให้เกิดการสร้างหรือใช้งานทรัพยากรบน Cloud Provider นั้น
